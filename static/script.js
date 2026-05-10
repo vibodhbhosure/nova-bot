@@ -454,8 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const feeWarning = document.getElementById("fee-warning");
     const feeTpVal = document.getElementById("fee-tp-val");
     const tpInputDom = document.getElementById("tp-input");
-
-    if (physicsForm) {
+    
     function fetchState() {
         if (physicsForm) {
             fetch("/api/state").then(res => {
@@ -478,6 +477,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }).catch(err => console.error("Error fetching initial state:", err));
         }
     }
+
+    if (physicsForm) {
 
         if (tpInputDom) {
             tpInputDom.addEventListener('input', (e) => {
