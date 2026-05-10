@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Response, Request
 from pydantic import BaseModel
 from webauthn import generate_registration_options, verify_registration_response, generate_authentication_options, verify_authentication_response, options_to_json
 from webauthn.helpers.structs import RegistrationCredential, AuthenticationCredential, PublicKeyCredentialDescriptor
+from webauthn.helpers import base64url_to_bytes
 import sqlite3
 import json
 
@@ -77,7 +78,12 @@ async def login_verify(req: Request, response: Response):
     if not cred_id:
         raise HTTPException(status_code=400, detail="Invalid credential format")
         
-    cursor.execute("SELECT public_key, sign_count FROM webauthn_credentials WHERE id=?", (cred_id.encode('utf-8') if isinstance(cred_id, str) else cred_id,))
+    try:
+        raw_id = base64url_to_bytes(cred_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid credential ID encoding")
+        
+    cursor.execute("SELECT public_key, sign_count FROM webauthn_credentials WHERE id=?", (raw_id,))
     row = cursor.fetchone()
     if not row:
         raise HTTPException(status_code=400, detail="Credential not found")
@@ -92,7 +98,7 @@ async def login_verify(req: Request, response: Response):
             credential_current_sign_count=row[1]
         )
         
-        cursor.execute("UPDATE webauthn_credentials SET sign_count=? WHERE id=?", (verification.new_sign_count, cred_id))
+        cursor.execute("UPDATE webauthn_credentials SET sign_count=? WHERE id=?", (verification.new_sign_count, raw_id))
         db.commit()
         
         # Set authenticated cookie
