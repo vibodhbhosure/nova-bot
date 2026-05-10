@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity Micro-Trading Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-background">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+    </div>
+    
+    <div class="dashboard-wrapper">
+        <header class="header-glass">
+            <div class="logo-area">
+                <i data-lucide="activity" class="icon-primary"></i>
+                <h1><span class="gradient-text">Nova</span>Bot</h1>
+                <span class="badge">TESTNET</span>
+            </div>
+            <div class="status-indicator">
+                <div class="pulse-dot" id="socket-status"></div>
+                <span id="socket-text" class="text-muted">Connecting...</span>
+            </div>
+        </header>
+
+        <!-- Navigation Bar -->
+        <nav class="top-nav glass-panel" style="margin-bottom: 2rem;">
+            <button class="nav-btn active" data-target="view-dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+            <button class="nav-btn" data-target="view-threads"><i data-lucide="cpu"></i> Active Threads</button>
+            <button class="nav-btn" data-target="view-orders"><i data-lucide="package-open"></i> Open Orders</button>
+            <button class="nav-btn" data-target="view-settings"><i data-lucide="settings"></i> Configurations</button>
+        </nav>
+
+        <main id="main-content">
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view-container grid-layout active">
+                <!-- PnL Panel -->
+                <section class="card glass-panel pnl-panel" style="display:flex; align-items:center; justify-content:space-between">
+                    <div>
+                        <h2><i data-lucide="calculator"></i> Profit & Loss</h2>
+                        <p class="description">Live aggregated gains across active cycles.</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <h1 id="live-pnl" style="font-size: 2.5rem; margin: 0; font-variant-numeric: tabular-nums;">$0.00</h1>
+                    </div>
+                </section>
+
+                <!-- Master Control panel -->
+                <section class="card glass-panel control-panel">
+                    <h2>Master Control</h2>
+                    <div class="switch-container">
+                        <label class="switch">
+                            <input type="checkbox" id="master-switch">
+                            <span class="slider round"></span>
+                        </label>
+                        <span id="master-status-text" class="status-label off">System Idle</span>
+                    </div>
+                    <p class="description">Command autonomous micro-transacting framework. Operations will be halted if algorithmic risk thresholds are breached.</p>
+                </section>
+
+                <!-- Blacklist Panel -->
+                <section class="card glass-panel blacklist-panel">
+                    <h2>Risk Exclusions</h2>
+                    <form id="blacklist-form" class="input-group">
+                        <input type="text" id="blacklist-input" placeholder="e.g. PEPE/USDT" required autocomplete="off">
+                        <button type="submit" class="btn btn-primary">
+                            <i data-lucide="shield-off"></i> Restrict
+                        </button>
+                    </form>
+                    <div class="tags-container" id="blacklist-tags">
+                    </div>
+                </section>
+
+                <!-- Console output -->
+                <section class="card glass-panel console-panel">
+                    <h2>Terminal Execution Stream</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                        <div class="terminal-container" style="margin-top: 0;">
+                            <div class="terminal-header" style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="terminal" style="width: 16px; height: 16px;"></i> System Event Logs
+                            </div>
+                            <div class="terminal-window" id="sys-terminal-window">
+                                <!-- Logs inject here -->
+                            </div>
+                        </div>
+
+                        <div class="terminal-container" style="margin-top: 0;">
+                            <div class="terminal-header" style="color: var(--primary); font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="radar" style="width: 16px; height: 16px;"></i> Hunter Analytics Stream
+                            </div>
+                            <div class="terminal-window" id="hunter-terminal-window" style="border-top-color: rgba(59, 130, 246, 0.3);">
+                                <!-- Hunter Logs inject here -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Active trades -->
+                <section class="card glass-panel trades-panel card-span" style="grid-column: span 12;">
+                    <h2>Transaction Ledger</h2>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Action</th>
+                                    <th>Asset</th>
+                                    <th>Amount</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Threads View -->
+            <div id="view-threads" class="view-container" style="display: none;">
+                <section class="card glass-panel" style="width: 100%;">
+                    <h2><i data-lucide="cpu"></i> Active Trade Processors</h2>
+                    <div class="threads-grid-container" id="threads-container">
+                    </div>
+                </section>
+            </div>
+
+            <!-- Settings View -->
+            <div id="view-settings" class="view-container" style="display: none;">
+                <section class="card glass-panel config-panel" style="max-width: 800px; margin: 0 auto;">
+                    <h2><i data-lucide="settings"></i> Exchange Configuration</h2>
+                    <p class="description" style="margin-bottom: 2rem;">Securely inject API configurations directly into the trading backend without restarting the server.</p>
+                    <form id="config-form" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div>
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted)">API Key</label>
+                            <input type="password" id="api-key-input" placeholder="Leave blank for defaults" style="width:100%; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted)">Secret Key</label>
+                            <input type="password" id="secret-key-input" placeholder="Leave blank for defaults" style="width:100%; box-sizing:border-box;">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between;">
+                             <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                 <label class="switch">
+                                     <input type="checkbox" id="testnet-switch" checked>
+                                     <span class="slider round"></span>
+                                 </label>
+                                 <label style="font-size:0.9rem; color:var(--text-main); font-weight:600;">Sandbox (Testnet)</label>
+                             </div>
+                             <button type="submit" class="btn btn-primary" id="config-btn" style="height: 42px;"><i data-lucide="key"></i> Connect Live Engine</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="card glass-panel config-panel" style="max-width: 800px; margin: 2rem auto 0 auto;">
+                    <h2><i data-lucide="crosshairs"></i> Algorithmic Physics (Live)</h2>
+                    <p class="description" style="margin-bottom: 2rem;">Adjusting these variables dynamically alters the exit thresholds for active threads in real-time.</p>
+                    <form id="physics-form" style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-end;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted)" title="How much the price needs to go UP before the bot automatically sells and books your profit. Higher numbers mean more wait time.">Take Profit (%) <i data-lucide="info" style="width:12px; height:12px;"></i></label>
+                            <input type="number" step="0.001" id="tp-input" placeholder="0.5" style="width:100%; box-sizing:border-box; background: var(--bg-card); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem; border-radius: 4px;" required>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted)" title="Your safety limit. If the price falls DOWN by this amount, the bot sells immediately to prevent bigger losses.">Stop Loss (%) <i data-lucide="info" style="width:12px; height:12px;"></i></label>
+                            <input type="number" step="0.001" id="sl-input" placeholder="2.0" style="width:100%; box-sizing:border-box; background: var(--bg-card); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem; border-radius: 4px;" required>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted)" title="A score from 0-100 showing how 'cheap' a coin is. Lower than 30 is extremely cheap but rare. 45 means fairly cheap and happens more often.">RSI Trigger <i data-lucide="info" style="width:12px; height:12px;"></i></label>
+                            <input type="number" step="1.0" id="rsi-input" placeholder="45.0" style="width:100%; box-sizing:border-box; background: var(--bg-card); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem; border-radius: 4px;" required>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted)" title="How fast the bot analyzes the market. 1 Minute means super fast hunting, grabbing tiny fast movements.">Candle Timeframe <i data-lucide="info" style="width:12px; height:12px;"></i></label>
+                            <select id="tf-input" style="width:100%; box-sizing:border-box; background: var(--bg-card); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem; border-radius: 4px;" required>
+                                <option selected value="1m">1 Minute (HFT)</option>
+                                <option value="5m">5 Minute</option>
+                                <option value="15m">15 Minute</option>
+                            </select>
+                        </div>
+                        <div id="fee-warning" class="alert-box danger" style="flex: 1 1 100%; display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); padding: 0.8rem; border-radius: 6px; font-size: 0.85rem; color: var(--danger);">
+                            <i data-lucide="shield-alert" style="width:16px;height:16px;vertical-align:bottom;margin-right:0.3rem;"></i>
+                            <strong>Mathematical Deficit Warning:</strong> A Take Profit threshold of <span id="fee-tp-val" style="font-weight:bold;">0.00%</span> fails to bridge Binance's absolute 0.2% basic round-trip exchange fees. Even if targets execute successfully, you will physically bleed wallet capital on these intervals. Require minimum 0.25%.
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="physics-btn" style="height: 42px; min-width: 100%; justify-content: center; margin-top: 0.5rem;"><i data-lucide="save"></i> Load HFT Parameters</button>
+                    </form>
+                </section>
+            </div>
+            
+            <!-- Open Orders View -->
+            <div id="view-orders" class="view-container" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h2><i data-lucide="scan"></i> Global Open Orders</h2>
+                        <p class="description">Active un-matched orders currently pending anywhere on your Binance account.</p>
+                    </div>
+                </div>
+                
+                <section class="card glass-panel" style="margin-top: 2rem;">
+                    <div class="table-container">
+                        <table class="data-table grid-table">
+                            <thead>
+                                <tr>
+                                    <th>Side</th>
+                                    <th>Asset</th>
+                                    <th>Amount</th>
+                                    <th>Price</th>
+                                    <th>Order ID</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="open-orders-tbody">
+                                <tr><td colspan='6' class='text-muted' style='text-align:center;'>Awaiting Live Exchange Sync...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+        </main>
+    </div>
+    
+    <script src="/static/script.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
