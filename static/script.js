@@ -11,7 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const blacklistInput = document.getElementById("blacklist-input");
     const blacklistTagsContainer = document.getElementById("blacklist-tags");
 
-    // --- Authentication ---
+    const passwordContainer = document.getElementById("password-container");
+    const masterPassword = document.getElementById("master-password");
     const authOverlay = document.getElementById("auth-overlay");
     const authBtn = document.getElementById("auth-btn");
     const registerBtn = document.getElementById("register-btn");
@@ -33,11 +34,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await res.json();
             
             if (data.authenticated) {
-                authOverlay.style.opacity = "0";
-                setTimeout(() => authOverlay.style.display = "none", 500);
+                authOverlay.style.opacity = '0';
+                setTimeout(() => authOverlay.style.display = 'none', 500);
                 return true;
             } else {
                 authOverlay.style.display = "flex";
+                passwordContainer.style.display = "flex";
                 if (data.has_passkey) {
                     authBtn.style.display = "flex";
                     resetRequestBtn.style.display = "flex";
@@ -55,25 +57,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
     authBtn.addEventListener("click", async () => {
         authError.style.display = "none";
+        const password = masterPassword.value.trim();
+        if (!password) {
+            authError.innerText = "Please enter the master password.";
+            authError.style.display = "block";
+            return;
+        }
+
         try {
-            const resp = await fetch('/api/auth/login/generate');
-            const options = await resp.json();
-            const asseResp = await SimpleWebAuthnBrowser.startAuthentication(options);
-            
-            const verifyResp = await fetch('/api/auth/login/verify', {
+            const verificationResp = await fetch('/api/auth/login/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(asseResp),
+                body: JSON.stringify({ password }),
             });
-            
-            if (verifyResp.ok) {
-                authOverlay.style.opacity = "0";
-                setTimeout(() => authOverlay.style.display = "none", 500);
+
+            if (verificationResp.ok) {
+                authOverlay.style.opacity = '0';
+                setTimeout(() => authOverlay.style.display = 'none', 500);
                 connectWS();
                 fetchOpenOrders();
                 fetchState();
             } else {
-                authError.innerText = "Authentication failed.";
+                const err = await verificationResp.json();
+                authError.innerText = err.detail || "Authentication failed";
                 authError.style.display = "block";
             }
         } catch (e) {
@@ -84,25 +90,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
     registerBtn.addEventListener("click", async () => {
         authError.style.display = "none";
+        const password = masterPassword.value.trim();
+        if (password.length < 6) {
+            authError.innerText = "Password must be at least 6 characters.";
+            authError.style.display = "block";
+            return;
+        }
+        
         try {
-            const resp = await fetch('/api/auth/register/generate');
-            const options = await resp.json();
-            const attResp = await SimpleWebAuthnBrowser.startRegistration(options);
-            
-            const verifyResp = await fetch('/api/auth/register/verify', {
+            const resp = await fetch('/api/auth/register/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(attResp),
+                body: JSON.stringify({ password })
             });
-            
-            if (verifyResp.ok) {
-                registerBtn.style.display = "none";
-                authBtn.style.display = "block";
-                authError.innerText = "Registered successfully. Please login.";
-                authError.style.color = "var(--success)";
-                authError.style.display = "block";
+
+            if (resp.ok) {
+                // Instantly log them in
+                await fetch('/api/auth/login/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                
+                authOverlay.style.opacity = '0';
+                setTimeout(() => authOverlay.style.display = 'none', 500);
+                connectWS();
+                fetchOpenOrders();
+                fetchState();
             } else {
-                authError.innerText = "Registration failed.";
+                const err = await resp.json();
+                authError.innerText = err.detail || "Registration failed";
                 authError.style.display = "block";
             }
         } catch (e) {
@@ -157,7 +174,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 otpContainer.style.display = "none";
                 authBtn.style.display = "none";
                 registerBtn.style.display = "flex";
-                authError.innerText = "Device reset successfully! You may now register a new passkey.";
+                masterPassword.value = "";
+                authError.innerText = "Device reset successfully! You may now set a new password.";
                 authError.style.color = "var(--success)";
                 authError.style.display = "block";
             } else {
