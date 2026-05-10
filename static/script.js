@@ -14,13 +14,26 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Authentication ---
     const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
     const authOverlay = document.getElementById("auth-overlay");
-    const authBtn = document.getElementById("auth-btn");
-    const registerBtn = document.getElementById("register-btn");
+    const authButtons = document.getElementById("auth-buttons");
+    const registerButtons = document.getElementById("register-buttons");
+    const passwordContainer = document.getElementById("password-container");
+    
+    const authPasskeyBtn = document.getElementById("auth-passkey-btn");
+    const authPasswordBtn = document.getElementById("auth-password-btn");
+    const regPasskeyBtn = document.getElementById("reg-passkey-btn");
+    const regPasswordBtn = document.getElementById("reg-password-btn");
+    
+    const masterPasswordInput = document.getElementById("master-password");
+    const submitPasswordBtn = document.getElementById("submit-password-btn");
+    const backPasswordBtn = document.getElementById("back-password-btn");
+
     const resetRequestBtn = document.getElementById("reset-request-btn");
     const otpContainer = document.getElementById("otp-container");
     const otpInput = document.getElementById("otp-input");
     const otpSubmitBtn = document.getElementById("otp-submit-btn");
     const authError = document.getElementById("auth-error");
+
+    let passwordMode = null; // 'login' or 'register'
 
     async function checkAuthStatus() {
         try {
@@ -28,22 +41,27 @@ document.addEventListener("DOMContentLoaded", () => {
             if (res.status === 401) {
                 // If the check itself fails due to strict middleware, treat as unauthenticated
                 authOverlay.style.display = "flex";
-                authBtn.style.display = "block";
+                authButtons.style.display = "flex";
                 return false;
             }
             const data = await res.json();
             
             if (data.authenticated) {
-                authOverlay.style.opacity = "0";
-                setTimeout(() => authOverlay.style.display = "none", 500);
+                authOverlay.style.opacity = '0';
+                setTimeout(() => authOverlay.style.display = 'none', 500);
                 return true;
             } else {
                 authOverlay.style.display = "flex";
-                if (data.has_passkey) {
-                    authBtn.style.display = "flex";
+                
+                if (data.has_passkey || data.has_password) {
+                    authButtons.style.display = "flex";
+                    
+                    if (!data.has_passkey) authPasskeyBtn.style.display = "none";
+                    if (!data.has_password) authPasswordBtn.style.display = "none";
+                    
                     resetRequestBtn.style.display = "flex";
                 } else {
-                    registerBtn.style.display = "flex";
+                    registerButtons.style.display = "flex";
                     resetRequestBtn.style.display = "none";
                 }
                 return false;
@@ -54,27 +72,30 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    authBtn.addEventListener("click", async () => {
+    authPasskeyBtn.addEventListener("click", async () => {
         authError.style.display = "none";
         try {
             const resp = await fetch('/api/auth/login/generate');
+            if (!resp.ok) throw new Error(await resp.text());
             const options = await resp.json();
+
             const asseResp = await startAuthentication({ optionsJSON: options });
-            
-            const verifyResp = await fetch('/api/auth/login/verify', {
+
+            const verificationResp = await fetch('/api/auth/login/verify_passkey', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(asseResp),
             });
-            
-            if (verifyResp.ok) {
-                authOverlay.style.opacity = "0";
-                setTimeout(() => authOverlay.style.display = "none", 500);
+
+            if (verificationResp.ok) {
+                authOverlay.style.opacity = '0';
+                setTimeout(() => authOverlay.style.display = 'none', 500);
                 connectWS();
                 fetchOpenOrders();
                 fetchState();
             } else {
-                authError.innerText = "Authentication failed.";
+                const err = await verificationResp.json();
+                authError.innerText = err.detail || "Authentication failed";
                 authError.style.display = "block";
             }
         } catch (e) {
@@ -83,27 +104,98 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    registerBtn.addEventListener("click", async () => {
+    regPasskeyBtn.addEventListener("click", async () => {
         authError.style.display = "none";
         try {
             const resp = await fetch('/api/auth/register/generate');
+            if (!resp.ok) throw new Error(await resp.text());
             const options = await resp.json();
+
             const attResp = await startRegistration({ optionsJSON: options });
-            
-            const verifyResp = await fetch('/api/auth/register/verify', {
+
+            const verifyResp = await fetch('/api/auth/register/verify_passkey', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(attResp),
             });
-            
+
             if (verifyResp.ok) {
-                registerBtn.style.display = "none";
-                authBtn.style.display = "block";
-                authError.innerText = "Registered successfully. Please login.";
+                registerButtons.style.display = "none";
+                authButtons.style.display = "flex";
+                authPasskeyBtn.style.display = "flex";
+                authError.innerText = "Registered passkey successfully. Please login.";
                 authError.style.color = "var(--success)";
                 authError.style.display = "block";
             } else {
-                authError.innerText = "Registration failed.";
+                const err = await verifyResp.json();
+                authError.innerText = err.detail || "Registration failed";
+                authError.style.display = "block";
+            }
+        } catch (e) {
+            authError.innerText = e.message;
+            authError.style.display = "block";
+        }
+    });
+    
+    authPasswordBtn.addEventListener("click", () => {
+        authButtons.style.display = "none";
+        passwordContainer.style.display = "flex";
+        passwordMode = 'login';
+        masterPasswordInput.focus();
+    });
+
+    regPasswordBtn.addEventListener("click", () => {
+        registerButtons.style.display = "none";
+        passwordContainer.style.display = "flex";
+        passwordMode = 'register';
+        masterPasswordInput.focus();
+    });
+
+    backPasswordBtn.addEventListener("click", () => {
+        passwordContainer.style.display = "none";
+        if (passwordMode === 'login') {
+            authButtons.style.display = "flex";
+        } else {
+            registerButtons.style.display = "flex";
+        }
+        masterPasswordInput.value = "";
+    });
+
+    submitPasswordBtn.addEventListener("click", async () => {
+        authError.style.display = "none";
+        const password = masterPasswordInput.value.trim();
+        if (password.length < 6) {
+            authError.innerText = "Password must be at least 6 characters.";
+            authError.style.display = "block";
+            return;
+        }
+
+        const endpoint = passwordMode === 'register' ? '/api/auth/register/verify_password' : '/api/auth/login/verify_password';
+        try {
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+
+            if (resp.ok) {
+                if (passwordMode === 'register') {
+                    // Instantly log them in
+                    await fetch('/api/auth/login/verify_password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password })
+                    });
+                }
+                
+                authOverlay.style.opacity = '0';
+                setTimeout(() => authOverlay.style.display = 'none', 500);
+                connectWS();
+                fetchOpenOrders();
+                fetchState();
+            } else {
+                const err = await resp.json();
+                authError.innerText = err.detail || "Authentication failed";
                 authError.style.display = "block";
             }
         } catch (e) {
@@ -156,9 +248,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             if (resp.ok) {
                 otpContainer.style.display = "none";
-                authBtn.style.display = "none";
-                registerBtn.style.display = "flex";
-                authError.innerText = "Device reset successfully! You may now register a new passkey.";
+                authButtons.style.display = "none";
+                registerButtons.style.display = "flex";
+                regPasskeyBtn.style.display = "flex";
+                regPasswordBtn.style.display = "flex";
+                masterPasswordInput.value = "";
+                authError.innerText = "Device reset successfully! You may now register a new passkey or set a master password.";
                 authError.style.color = "var(--success)";
                 authError.style.display = "block";
             } else {
