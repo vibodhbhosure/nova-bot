@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import asyncio
 from bot_manager import CryptoBotManager
 import json
+import random
 from fastapi import Request, Depends, HTTPException
 from auth_manager import router as auth_router
 
@@ -35,6 +36,39 @@ class PhysicsRequest(BaseModel):
 class CancelOrderRequest(BaseModel):
     orderId: str
     symbol: str
+
+class OTPVerifyRequest(BaseModel):
+    otp: str
+
+reset_otp_store = {}
+
+@app.post("/api/auth/reset/request")
+async def request_device_reset():
+    otp = str(random.randint(100000, 999999))
+    reset_otp_store['current'] = otp
+    try:
+        await bot.send_email(
+            "NovaBot Device Reset OTP", 
+            f"Your OTP to reset the master device passkey is: {otp}\nIf you did not request this, please ignore this email."
+        )
+        return {"status": "ok"}
+    except Exception as e:
+        bot.log(f"Failed to send reset OTP: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send OTP via email. Check server logs.")
+
+@app.post("/api/auth/reset/verify")
+async def verify_device_reset(req: OTPVerifyRequest):
+    if 'current' not in reset_otp_store or reset_otp_store['current'] != req.otp.strip():
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    import sqlite3
+    db = sqlite3.connect('nova.db', check_same_thread=False)
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM webauthn_credentials")
+    db.commit()
+    
+    del reset_otp_store['current']
+    return {"status": "ok"}
 
 @app.on_event("startup")
 async def startup_event():

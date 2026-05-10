@@ -127,3 +127,8 @@ async def auth_status(req: Request):
     cursor.execute("SELECT COUNT(*) FROM webauthn_credentials")
     count = cursor.fetchone()[0]
     return {"authenticated": False, "has_passkey": count > 0}
+
+@router.post("/api/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie("novabot_auth")
+    return {"status": "ok"}

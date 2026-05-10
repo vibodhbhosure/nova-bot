@@ -15,6 +15,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const authOverlay = document.getElementById("auth-overlay");
     const authBtn = document.getElementById("auth-btn");
     const registerBtn = document.getElementById("register-btn");
+    const resetRequestBtn = document.getElementById("reset-request-btn");
+    const otpContainer = document.getElementById("otp-container");
+    const otpInput = document.getElementById("otp-input");
+    const otpSubmitBtn = document.getElementById("otp-submit-btn");
     const authError = document.getElementById("auth-error");
 
     async function checkAuthStatus() {
@@ -36,8 +40,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 authOverlay.style.display = "flex";
                 if (data.has_passkey) {
                     authBtn.style.display = "block";
+                    resetRequestBtn.style.display = "block";
                 } else {
                     registerBtn.style.display = "block";
+                    resetRequestBtn.style.display = "none";
                 }
                 return false;
             }
@@ -103,6 +109,57 @@ document.addEventListener("DOMContentLoaded", () => {
             authError.innerText = e.message;
             authError.style.display = "block";
         }
+    });
+
+    resetRequestBtn.addEventListener("click", async () => {
+        authError.style.display = "none";
+        try {
+            const resp = await fetch('/api/auth/reset/request', { method: 'POST' });
+            if (resp.ok) {
+                resetRequestBtn.style.display = "none";
+                otpContainer.style.display = "flex";
+            } else {
+                const err = await resp.json();
+                authError.innerText = err.detail || "Reset request failed";
+                authError.style.display = "block";
+            }
+        } catch(e) {
+            authError.innerText = e.message;
+            authError.style.display = "block";
+        }
+    });
+
+    otpSubmitBtn.addEventListener("click", async () => {
+        authError.style.display = "none";
+        const otp = otpInput.value.trim();
+        if (!otp) return;
+        
+        try {
+            const resp = await fetch('/api/auth/reset/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ otp })
+            });
+            if (resp.ok) {
+                otpContainer.style.display = "none";
+                authBtn.style.display = "none";
+                registerBtn.style.display = "block";
+                authError.innerText = "Device reset successfully! You may now register a new passkey.";
+                authError.style.color = "var(--success)";
+                authError.style.display = "block";
+            } else {
+                const err = await resp.json();
+                authError.innerText = err.detail || "Invalid OTP";
+                authError.style.display = "block";
+            }
+        } catch(e) {
+            authError.innerText = e.message;
+            authError.style.display = "block";
+        }
+    });
+
+    window.addEventListener("beforeunload", () => {
+        navigator.sendBeacon("/api/auth/logout");
     });
 
     // --- State ---
