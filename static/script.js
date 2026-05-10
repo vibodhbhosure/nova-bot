@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const blacklistTagsContainer = document.getElementById("blacklist-tags");
 
     // --- Authentication ---
+    const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
     const authOverlay = document.getElementById("auth-overlay");
     const authBtn = document.getElementById("auth-btn");
     const registerBtn = document.getElementById("register-btn");
