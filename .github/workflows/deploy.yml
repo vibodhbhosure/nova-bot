@@ -1,0 +1,37 @@
+name: Deploy NovaBot to Oracle Cloud
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Server via Rsync
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.SERVER_IP }}
+          REMOTE_USER: ubuntu
+          TARGET: /home/ubuntu/crypto-micro-bot/
+          # Ensure we never overwrite the database, the env variables, or the venv!
+          EXCLUDE: "/venv/, /__pycache__/, /.git/, /.env, /nova.db"
+
+      - name: Restart Bot Service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ~/crypto-micro-bot
+            source venv/bin/activate
+            # Upgrade any new dependencies
+            pip install -r requirements.txt
+            # Restart the systemd service to apply new code
+            sudo systemctl restart novabot
