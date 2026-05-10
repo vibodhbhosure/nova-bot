@@ -1,13 +1,12 @@
 import os
 from fastapi import APIRouter, HTTPException, Response, Request
 from pydantic import BaseModel
-from webauthn import generate_registration_options, verify_registration_response, generate_authentication_options, verify_authentication_response
-from webauthn.helpers.structs import RegistrationCredential, AuthenticationCredential
+from webauthn import generate_registration_options, verify_registration_response, generate_authentication_options, verify_authentication_response, options_to_json
+from webauthn.helpers.structs import RegistrationCredential, AuthenticationCredential, PublicKeyCredentialDescriptor
 import sqlite3
 import json
 
 router = APIRouter()
-RP_ID = os.getenv("RP_ID", "80.225.216.191") # Should match window.location.hostname
 RP_NAME = "NovaBot Secure Terminal"
 USER_ID = b"admin_user_id_12345"
 
@@ -21,17 +20,17 @@ class RegisterResponse(BaseModel):
     response: dict
 
 @router.get("/api/auth/register/generate")
-async def register_generate():
+async def register_generate(req: Request):
     global current_challenge
     # Generate options
     options = generate_registration_options(
-        rp_id=RP_ID,
+        rp_id=req.url.hostname,
         rp_name=RP_NAME,
         user_id=USER_ID,
         user_name="admin",
     )
     current_challenge = options.challenge
-    return json.loads(options.json())
+    return json.loads(options_to_json(options))
 
 @router.post("/api/auth/register/verify")
 async def register_verify(req: Request):
@@ -41,8 +40,8 @@ async def register_verify(req: Request):
         verification = verify_registration_response(
             credential=body,
             expected_challenge=current_challenge,
-            expected_origin=f"http://{RP_ID}:8000",
-            expected_rp_id=RP_ID,
+            expected_origin=f"http://{req.url.hostname}:8000",
+            expected_rp_id=req.url.hostname,
         )
         
         # Save credential
@@ -55,7 +54,7 @@ async def register_verify(req: Request):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/api/auth/login/generate")
-async def login_generate():
+async def login_generate(req: Request):
     global current_challenge
     cursor.execute("SELECT id FROM webauthn_credentials")
     rows = cursor.fetchall()
@@ -63,11 +62,11 @@ async def login_generate():
         raise HTTPException(status_code=400, detail="No credentials registered.")
         
     options = generate_authentication_options(
-        rp_id=RP_ID,
-        allow_credentials=[{"type": "public-key", "id": r[0]} for r in rows]
+        rp_id=req.url.hostname,
+        allow_credentials=[PublicKeyCredentialDescriptor(id=r[0]) for r in rows]
     )
     current_challenge = options.challenge
-    return json.loads(options.json())
+    return json.loads(options_to_json(options))
 
 @router.post("/api/auth/login/verify")
 async def login_verify(req: Request, response: Response):
@@ -87,8 +86,8 @@ async def login_verify(req: Request, response: Response):
         verification = verify_authentication_response(
             credential=body,
             expected_challenge=current_challenge,
-            expected_origin=f"http://{RP_ID}:8000",
-            expected_rp_id=RP_ID,
+            expected_origin=f"http://{req.url.hostname}:8000",
+            expected_rp_id=req.url.hostname,
             credential_public_key=row[0],
             credential_current_sign_count=row[1]
         )
