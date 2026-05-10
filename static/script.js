@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const resp = await fetch('/api/auth/login/generate');
             const options = await resp.json();
-            const asseResp = await SimpleWebAuthnBrowser.startAuthentication(options);
+            const asseResp = await startAuthentication({ optionsJSON: options });
             
             const verifyResp = await fetch('/api/auth/login/verify', {
                 method: 'POST',
@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const resp = await fetch('/api/auth/register/generate');
             const options = await resp.json();
-            const attResp = await SimpleWebAuthnBrowser.startRegistration(options);
+            const attResp = await startRegistration({ optionsJSON: options });
             
             const verifyResp = await fetch('/api/auth/register/verify', {
                 method: 'POST',
