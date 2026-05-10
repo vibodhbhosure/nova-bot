@@ -505,3 +505,4 @@ input[type="text"]:focus, input[type="password"]:focus {
     justify-content: center;
   }
 }
+.spin { animation: spin 1s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } }

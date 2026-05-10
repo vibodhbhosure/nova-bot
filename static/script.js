@@ -39,10 +39,10 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 authOverlay.style.display = "flex";
                 if (data.has_passkey) {
-                    authBtn.style.display = "block";
-                    resetRequestBtn.style.display = "block";
+                    authBtn.style.display = "flex";
+                    resetRequestBtn.style.display = "flex";
                 } else {
-                    registerBtn.style.display = "block";
+                    registerBtn.style.display = "flex";
                     resetRequestBtn.style.display = "none";
                 }
                 return false;
@@ -113,6 +113,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     resetRequestBtn.addEventListener("click", async () => {
         authError.style.display = "none";
+        resetRequestBtn.disabled = true;
+        const originalText = resetRequestBtn.innerHTML;
+        resetRequestBtn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:16px;height:16px;"></i> Sending OTP...';
+        lucide.createIcons();
         try {
             const resp = await fetch('/api/auth/reset/request', { method: 'POST' });
             if (resp.ok) {
@@ -126,6 +130,10 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch(e) {
             authError.innerText = e.message;
             authError.style.display = "block";
+        } finally {
+            resetRequestBtn.disabled = false;
+            resetRequestBtn.innerHTML = originalText;
+            lucide.createIcons();
         }
     });
 
@@ -133,6 +141,11 @@ document.addEventListener("DOMContentLoaded", () => {
         authError.style.display = "none";
         const otp = otpInput.value.trim();
         if (!otp) return;
+        
+        otpSubmitBtn.disabled = true;
+        const originalOtpText = otpSubmitBtn.innerHTML;
+        otpSubmitBtn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:16px;height:16px;"></i>';
+        lucide.createIcons();
         
         try {
             const resp = await fetch('/api/auth/reset/verify', {
@@ -143,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (resp.ok) {
                 otpContainer.style.display = "none";
                 authBtn.style.display = "none";
-                registerBtn.style.display = "block";
+                registerBtn.style.display = "flex";
                 authError.innerText = "Device reset successfully! You may now register a new passkey.";
                 authError.style.color = "var(--success)";
                 authError.style.display = "block";
@@ -155,6 +168,10 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch(e) {
             authError.innerText = e.message;
             authError.style.display = "block";
+        } finally {
+            otpSubmitBtn.disabled = false;
+            otpSubmitBtn.innerHTML = originalOtpText;
+            lucide.createIcons();
         }
     });
 

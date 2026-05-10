@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Antigravity Micro-Trading Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/styles.css?v=2">
+    <link rel="stylesheet" href="/static/styles.css?v=3">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -20,7 +20,7 @@
         <p class="text-muted" style="margin-bottom: 2rem;">Authentication Required</p>
         <button id="auth-btn" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem; display: none;"><i data-lucide="fingerprint"></i> Authenticate with Passkey</button>
         <button id="register-btn" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem; display: none; margin-top: 1rem;"><i data-lucide="plus-circle"></i> Register New Passkey</button>
-        <button id="reset-request-btn" class="btn" style="background: transparent; color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); margin-top: 1.5rem; display: none; font-size: 0.85rem;"><i data-lucide="mail"></i> Reset Master Device via OTP</button>
+        <button id="reset-request-btn" class="btn" style="background: transparent; color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); margin-top: 1.5rem; display: none; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.85rem;"><i data-lucide="mail" style="width:16px;height:16px;"></i> Reset Master Device via OTP</button>
         
         <div id="otp-container" style="display: none; margin-top: 1.5rem; flex-direction: column; align-items: center; gap: 0.5rem;">
             <p class="text-muted" style="font-size: 0.85rem;">An OTP has been sent to your alert email.</p>
@@ -242,7 +242,7 @@
     </div>
     
     <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
-    <script src="/static/script.js?v=2"></script>
+    <script src="/static/script.js?v=3"></script>
     <script>
         lucide.createIcons();
     </script>
