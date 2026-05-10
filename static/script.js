@@ -11,6 +11,100 @@ document.addEventListener("DOMContentLoaded", () => {
     const blacklistInput = document.getElementById("blacklist-input");
     const blacklistTagsContainer = document.getElementById("blacklist-tags");
 
+    // --- Authentication ---
+    const authOverlay = document.getElementById("auth-overlay");
+    const authBtn = document.getElementById("auth-btn");
+    const registerBtn = document.getElementById("register-btn");
+    const authError = document.getElementById("auth-error");
+
+    async function checkAuthStatus() {
+        try {
+            const res = await fetch("/api/auth/status");
+            if (res.status === 401) {
+                // If the check itself fails due to strict middleware, treat as unauthenticated
+                authOverlay.style.display = "flex";
+                authBtn.style.display = "block";
+                return false;
+            }
+            const data = await res.json();
+            
+            if (data.authenticated) {
+                authOverlay.style.opacity = "0";
+                setTimeout(() => authOverlay.style.display = "none", 500);
+                return true;
+            } else {
+                authOverlay.style.display = "flex";
+                if (data.has_passkey) {
+                    authBtn.style.display = "block";
+                } else {
+                    registerBtn.style.display = "block";
+                }
+                return false;
+            }
+        } catch(e) {
+            console.error("Auth check failed", e);
+            return false;
+        }
+    }
+
+    authBtn.addEventListener("click", async () => {
+        authError.style.display = "none";
+        try {
+            const resp = await fetch('/api/auth/login/generate');
+            const options = await resp.json();
+            const asseResp = await SimpleWebAuthnBrowser.startAuthentication(options);
+            
+            const verifyResp = await fetch('/api/auth/login/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(asseResp),
+            });
+            
+            if (verifyResp.ok) {
+                authOverlay.style.opacity = "0";
+                setTimeout(() => authOverlay.style.display = "none", 500);
+                connectWS();
+                fetchOpenOrders();
+                fetchState();
+            } else {
+                authError.innerText = "Authentication failed.";
+                authError.style.display = "block";
+            }
+        } catch (e) {
+            authError.innerText = e.message;
+            authError.style.display = "block";
+        }
+    });
+
+    registerBtn.addEventListener("click", async () => {
+        authError.style.display = "none";
+        try {
+            const resp = await fetch('/api/auth/register/generate');
+            const options = await resp.json();
+            const attResp = await SimpleWebAuthnBrowser.startRegistration(options);
+            
+            const verifyResp = await fetch('/api/auth/register/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(attResp),
+            });
+            
+            if (verifyResp.ok) {
+                registerBtn.style.display = "none";
+                authBtn.style.display = "block";
+                authError.innerText = "Registered successfully. Please login.";
+                authError.style.color = "var(--success)";
+                authError.style.display = "block";
+            } else {
+                authError.innerText = "Registration failed.";
+                authError.style.display = "block";
+            }
+        } catch (e) {
+            authError.innerText = e.message;
+            authError.style.display = "block";
+        }
+    });
+
     // --- State ---
     let ws;
     let reconnectInterval = 2000;
@@ -362,21 +456,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const tpInputDom = document.getElementById("tp-input");
 
     if (physicsForm) {
-        // Fetch initial state for physics immediately on load
-        fetch("/api/state").then(res => res.json()).then(data => {
-            if (data.physics) {
-                if(tpInputDom) {
-                    tpInputDom.value = data.physics.takeProfitPct;
-                    tpInputDom.dispatchEvent(new Event('input'));
+    function fetchState() {
+        if (physicsForm) {
+            fetch("/api/state").then(res => {
+                if (res.status === 401) return;
+                return res.json();
+            }).then(data => {
+                if (!data) return;
+                if (data.physics) {
+                    if(tpInputDom) {
+                        tpInputDom.value = data.physics.takeProfitPct;
+                        tpInputDom.dispatchEvent(new Event('input'));
+                    }
+                    const slInput = document.getElementById('sl-input');
+                    const rsiInput = document.getElementById('rsi-input');
+                    const tfInput = document.getElementById('tf-input');
+                    if(slInput) slInput.value = data.physics.stopLossPct;
+                    if(rsiInput) rsiInput.value = data.physics.rsiThreshold;
+                    if(tfInput) tfInput.value = data.physics.candleTimeframe;
                 }
-                const slInput = document.getElementById('sl-input');
-                const rsiInput = document.getElementById('rsi-input');
-                const tfInput = document.getElementById('tf-input');
-                if(slInput) slInput.value = data.physics.stopLossPct;
-                if(rsiInput) rsiInput.value = data.physics.rsiThreshold;
-                if(tfInput) tfInput.value = data.physics.candleTimeframe;
-            }
-        }).catch(err => console.error("Error fetching initial state:", err));
+            }).catch(err => console.error("Error fetching initial state:", err));
+        }
+    }
 
         if (tpInputDom) {
             tpInputDom.addEventListener('input', (e) => {
@@ -524,5 +625,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- Init ---
-    connectWS();
+    checkAuthStatus().then(isAuthenticated => {
+        if (isAuthenticated) {
+            connectWS();
+            fetchState();
+            if(document.querySelector('.nav-btn.active').getAttribute('data-target') === 'view-orders') {
+                fetchOpenOrders();
+            }
+        }
+    });
 });

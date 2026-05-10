@@ -11,3 +11,6 @@ __pycache__/
 
 # Database
 nova.db
+
+*.key
+*.pub

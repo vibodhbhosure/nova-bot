@@ -58,6 +58,8 @@ class CryptoBotManager:
         self.db_cursor = self.db_conn.cursor()
         self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS sys_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, msg TEXT)''')
         self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS ledger_trades (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT, symbol TEXT, amount REAL, price REAL, status TEXT)''')
+        self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS sys_settings (key TEXT PRIMARY KEY, value TEXT)''')
+        self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS webauthn_credentials (id BLOB PRIMARY KEY, public_key BLOB, sign_count INTEGER)''')
         self.db_conn.commit()
 
         # Email Notification Configuration
@@ -106,13 +108,36 @@ class CryptoBotManager:
         rows = self.db_cursor.fetchall()
         return [{"action": r[0], "symbol": r[1], "amount": r[2], "price": r[3], "status": r[4]} for r in rows]
 
+    def save_setting(self, key, value):
+        self.db_cursor.execute("INSERT OR REPLACE INTO sys_settings (key, value) VALUES (?, ?)", (key, str(value)))
+        self.db_conn.commit()
+
+    async def hydrate_settings(self):
+        self.db_cursor.execute("SELECT key, value FROM sys_settings")
+        rows = self.db_cursor.fetchall()
+        settings = {r[0]: r[1] for r in rows}
+        
+        if "tp" in settings: self.risk_engine.take_profit_pct = float(settings["tp"])
+        if "sl" in settings: self.risk_engine.stop_loss_pct = float(settings["sl"])
+        if "rsi" in settings: self.risk_engine.rsi_threshold = float(settings["rsi"])
+        if "tf" in settings: self.risk_engine.candle_timeframe = settings["tf"]
+        
+        saved_api = settings.get("api_key", "")
+        saved_secret = settings.get("secret_key", "")
+        saved_testnet = settings.get("testnet", "true").lower() == "true"
+        
+        if saved_api and saved_secret:
+            await self.apply_credentials(saved_api, saved_secret, saved_testnet)
+        else:
+            try:
+                self.log("Connecting to exchange...")
+                await self.exchange.load_markets()
+                self.log(f"Markets loaded. Connected to: {self.exchange.urls['api']['public']}")
+            except Exception as e:
+                self.log(f"Failed to initialize: {e}")
+
     async def initialize(self):
-        try:
-            self.log("Connecting to exchange...")
-            await self.exchange.load_markets()
-            self.log(f"Markets loaded. Connected to: {self.exchange.urls['api']['public']}")
-        except Exception as e:
-            self.log(f"Failed to initialize: {e}")
+        await self.hydrate_settings()
 
     async def apply_credentials(self, api_key: str, secret_key: str, is_testnet: bool):
         self.log(f"Switching credentials. Testnet Mode: {is_testnet}")
@@ -133,7 +158,16 @@ class CryptoBotManager:
         if is_testnet:
             self.exchange.set_sandbox_mode(True)
             
-        await self.initialize()
+        self.save_setting("api_key", api_key)
+        self.save_setting("secret_key", secret_key)
+        self.save_setting("testnet", str(is_testnet).lower())
+        
+        try:
+            self.log("Connecting to exchange...")
+            await self.exchange.load_markets()
+            self.log(f"Markets loaded. Connected to: {self.exchange.urls['api']['public']}")
+        except Exception as e:
+            self.log(f"Failed to initialize: {e}")
 
     async def turn_on(self):
         if self.is_running:

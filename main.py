@@ -5,9 +5,16 @@ from pydantic import BaseModel
 import asyncio
 from bot_manager import CryptoBotManager
 import json
+from fastapi import Request, Depends, HTTPException
+from auth_manager import router as auth_router
 
 app = FastAPI(title="Crypto Micro-Bot Auto-Trader")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.include_router(auth_router)
+
+def check_auth(req: Request):
+    if req.cookies.get("novabot_auth") != "authenticated":
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 bot = CryptoBotManager(testnet=True)
 
@@ -42,26 +49,32 @@ async def shutdown_event():
     # Explicity close CCXT networking resources
     await bot.close()
 
-@app.post("/api/settings")
+@app.post("/api/settings", dependencies=[Depends(check_auth)])
 async def update_settings(req: SettingsRequest):
     await bot.apply_credentials(req.apiKey, req.secretKey, req.isTestnet)
     return {"status": "reconnected"}
 
-@app.post("/api/physics")
+@app.post("/api/physics", dependencies=[Depends(check_auth)])
 async def update_physics(req: PhysicsRequest):
     bot.risk_engine.take_profit_pct = req.takeProfitPct
     bot.risk_engine.stop_loss_pct = req.stopLossPct
     bot.risk_engine.rsi_threshold = req.rsiThreshold
     bot.risk_engine.candle_timeframe = req.candleTimeframe.strip()
+    
+    bot.save_setting("tp", req.takeProfitPct)
+    bot.save_setting("sl", req.stopLossPct)
+    bot.save_setting("rsi", req.rsiThreshold)
+    bot.save_setting("tf", req.candleTimeframe.strip())
+    
     bot.log(f"Updated HFT Physics: TP {req.takeProfitPct}% | SL {req.stopLossPct}% | RSI {req.rsiThreshold} | TF {req.candleTimeframe}")
     return {"status": "updated"}
 
-@app.get("/api/orders")
+@app.get("/api/orders", dependencies=[Depends(check_auth)])
 async def get_orders():
     orders = await bot.get_open_orders()
     return {"orders": orders}
 
-@app.post("/api/orders/cancel")
+@app.post("/api/orders/cancel", dependencies=[Depends(check_auth)])
 async def cancel_order(req: CancelOrderRequest):
     success, res = await bot.cancel_order(req.orderId, req.symbol)
     if success:
@@ -69,7 +82,7 @@ async def cancel_order(req: CancelOrderRequest):
     return {"status": "error", "message": res}
 
 # API Endpoints
-@app.get("/api/state")
+@app.get("/api/state", dependencies=[Depends(check_auth)])
 async def get_state():
     # Utilizing SQLite bindings directly for safe hydration
     return {
@@ -87,22 +100,22 @@ async def get_state():
         "blacklisted": bot.risk_engine.blacklisted_symbols
     }
 
-@app.post("/api/start")
+@app.post("/api/start", dependencies=[Depends(check_auth)])
 async def start_bot():
     await bot.turn_on()
     return {"status": "started"}
 
-@app.post("/api/stop")
+@app.post("/api/stop", dependencies=[Depends(check_auth)])
 async def stop_bot():
     await bot.turn_off()
     return {"status": "stopped"}
 
-@app.post("/api/blacklist/add")
+@app.post("/api/blacklist/add", dependencies=[Depends(check_auth)])
 async def add_blacklist(req: BlacklistRequest):
     await bot.blacklist_coin(req.symbol)
     return {"status": "added", "blacklisted": bot.risk_engine.blacklisted_symbols}
 
-@app.post("/api/blacklist/remove")
+@app.post("/api/blacklist/remove", dependencies=[Depends(check_auth)])
 async def remove_blacklist(req: BlacklistRequest):
     await bot.unblacklist_coin(req.symbol)
     return {"status": "removed", "blacklisted": bot.risk_engine.blacklisted_symbols}
@@ -110,6 +123,9 @@ async def remove_blacklist(req: BlacklistRequest):
 # WebSockets for real-time dashboard data
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    if websocket.cookies.get("novabot_auth") != "authenticated":
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     try:
         while True:
