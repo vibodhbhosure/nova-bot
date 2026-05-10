@@ -23,6 +23,12 @@ class RegisterResponse(BaseModel):
 @router.get("/api/auth/register/generate")
 async def register_generate(req: Request):
     global current_challenge
+    
+    # Security: Only allow exactly ONE device to ever be registered.
+    cursor.execute("SELECT COUNT(*) FROM webauthn_credentials")
+    if cursor.fetchone()[0] > 0:
+        raise HTTPException(status_code=403, detail="Registration locked. A device is already registered.")
+
     # Generate options
     options = generate_registration_options(
         rp_id=req.url.hostname,
@@ -36,6 +42,12 @@ async def register_generate(req: Request):
 @router.post("/api/auth/register/verify")
 async def register_verify(req: Request):
     global current_challenge
+    
+    # Security: Double-check before saving that no other device hijacked the registration
+    cursor.execute("SELECT COUNT(*) FROM webauthn_credentials")
+    if cursor.fetchone()[0] > 0:
+        raise HTTPException(status_code=403, detail="Registration locked. A device is already registered.")
+
     body = await req.json()
     try:
         verification = verify_registration_response(
