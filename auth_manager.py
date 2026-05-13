@@ -57,7 +57,7 @@ async def register_verify_passkey(req: Request):
         verification = verify_registration_response(
             credential=body,
             expected_challenge=current_challenge,
-            expected_origin=f"http://{req.url.hostname}:8000",
+            expected_origin=f"https://{req.url.hostname}",
             expected_rp_id=req.url.hostname,
         )
         
@@ -126,7 +126,7 @@ async def login_verify_passkey(req: Request, response: Response):
         verification = verify_authentication_response(
             credential=body,
             expected_challenge=current_challenge,
-            expected_origin=f"http://{req.url.hostname}:8000",
+            expected_origin=f"https://{req.url.hostname}",
             expected_rp_id=req.url.hostname,
             credential_public_key=row[0],
             credential_current_sign_count=row[1]
