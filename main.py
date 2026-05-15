@@ -92,6 +92,7 @@ async def get_settings():
         "apiKey": settings.get("api_key", ""),
         "secretKey": settings.get("secret_key", ""),
         "isTestnet": settings.get("testnet", "true").lower() == "true",
+        "emailAlerts": settings.get("email_alerts", str(bot.email_alerts_enabled)).lower() == "true",
         "takeProfitPct": float(settings.get("tp", bot.risk_engine.take_profit_pct)),
         "stopLossPct": float(settings.get("sl", bot.risk_engine.stop_loss_pct)),
         "rsiThreshold": float(settings.get("rsi", bot.risk_engine.rsi_threshold)),
@@ -102,6 +103,16 @@ async def get_settings():
 async def update_settings(req: SettingsRequest):
     await bot.apply_credentials(req.apiKey, req.secretKey, req.isTestnet)
     return {"status": "reconnected"}
+
+class EmailAlertsRequest(BaseModel):
+    enabled: bool
+
+@app.post("/api/email-alerts", dependencies=[Depends(check_auth)])
+async def toggle_email_alerts(req: EmailAlertsRequest):
+    bot.email_alerts_enabled = req.enabled
+    bot.save_setting("email_alerts", str(req.enabled).lower())
+    bot.log(f"Email alerts {'enabled' if req.enabled else 'disabled'}.")
+    return {"status": "ok", "emailAlerts": req.enabled}
 
 @app.post("/api/physics", dependencies=[Depends(check_auth)])
 async def update_physics(req: PhysicsRequest):

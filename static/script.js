@@ -692,13 +692,27 @@ document.addEventListener("DOMContentLoaded", () => {
             const secretKeyInput = document.getElementById("secret-key-input");
             const testnetSwitch = document.getElementById("testnet-switch");
             const testnetBadge = document.getElementById("testnet-badge");
+            const emailAlertsSwitch = document.getElementById("email-alerts-switch");
             
             if (apiKeyInput) apiKeyInput.value = data.apiKey || "";
             if (secretKeyInput) secretKeyInput.value = data.secretKey || "";
             if (testnetSwitch) testnetSwitch.checked = data.isTestnet;
+            if (emailAlertsSwitch) emailAlertsSwitch.checked = data.emailAlerts;
             
             if (testnetBadge) {
                 testnetBadge.style.display = data.isTestnet ? "inline-block" : "none";
+            }
+            
+            if (emailAlertsSwitch) {
+                emailAlertsSwitch.addEventListener("change", async () => {
+                    try {
+                        await fetch("/api/email-alerts", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ enabled: emailAlertsSwitch.checked })
+                        });
+                    } catch(e) { console.error(e); }
+                });
             }
         }).catch(err => console.error("Error fetching settings:", err));
     }

@@ -203,13 +203,23 @@
                                 style="width:100%; box-sizing:border-box;">
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between;">
-                            <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                <label class="switch">
-                                    <input type="checkbox" id="testnet-switch" checked>
-                                    <span class="slider round"></span>
-                                </label>
-                                <label style="font-size:0.9rem; color:var(--text-main); font-weight:600;">Sandbox
-                                    (Testnet)</label>
+                            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                    <label class="switch">
+                                        <input type="checkbox" id="testnet-switch" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <label style="font-size:0.9rem; color:var(--text-main); font-weight:600;">Sandbox
+                                        (Testnet)</label>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                    <label class="switch">
+                                        <input type="checkbox" id="email-alerts-switch">
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <label style="font-size:0.9rem; color:var(--text-main); font-weight:600;">
+                                        <i data-lucide="mail" style="width:14px;height:14px;vertical-align:middle;"></i> Email Alerts</label>
+                                </div>
                             </div>
                             <button type="submit" class="btn btn-primary" id="config-btn" style="height: 42px;"><i
                                     data-lucide="save"></i> Save Configuration</button>

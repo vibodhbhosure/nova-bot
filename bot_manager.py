@@ -71,6 +71,7 @@ class CryptoBotManager:
             "password": os.getenv("EMAIL_PASSWORD", ""),
             "recipient": os.getenv("EMAIL_RECIPIENT", "")
         }
+        self.email_alerts_enabled = self.email_config["enabled"]
 
     def _send_email_sync(self, subject, body):
         if not self.email_config.get("enabled"):
@@ -92,8 +93,11 @@ class CryptoBotManager:
             print(f"[EMAIL] Failed to send email: {e}")
 
     async def send_email(self, subject, body):
+        if not self.email_alerts_enabled and "OTP" not in subject:
+            self.log("[EMAIL] Skipped: Email alerts disabled.")
+            return
         if self.is_testnet and "OTP" not in subject:
-            self.log("[EMAIL] Skipped sending alert email because environment is Testnet.")
+            self.log("[EMAIL] Skipped: Testnet mode — no alerts sent.")
             return
         await asyncio.to_thread(self._send_email_sync, subject, body)
 
@@ -137,6 +141,8 @@ class CryptoBotManager:
         saved_api = settings.get("api_key", "")
         saved_secret = settings.get("secret_key", "")
         saved_testnet = settings.get("testnet", "true").lower() == "true"
+        if "email_alerts" in settings:
+            self.email_alerts_enabled = settings["email_alerts"].lower() == "true"
         
         if saved_api and saved_secret:
             await self.apply_credentials(saved_api, saved_secret, saved_testnet)
