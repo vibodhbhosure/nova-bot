@@ -370,7 +370,7 @@ class CryptoBotManager:
                     
                 # Phase 3: Live Trailing Market
                 self.threads[thread_id]["status"] = "Trailing Market"
-                self.log(f"[{symbol}] Held position, engaging LIVE trailing exit target...")
+                self.log(f"[{symbol}] Held position, engaging active trailing exit target...")
                 
                 buy_price = target_price
                 sell_price = target_price
