@@ -54,10 +54,11 @@ async def register_verify_passkey(req: Request):
 
     body = await req.json()
     try:
+        origin = f"http://localhost:8000" if req.url.hostname == "localhost" else f"https://{req.url.hostname}"
         verification = verify_registration_response(
             credential=body,
             expected_challenge=current_challenge,
-            expected_origin=f"https://{req.url.hostname}",
+            expected_origin=origin,
             expected_rp_id=req.url.hostname,
         )
         
@@ -123,10 +124,11 @@ async def login_verify_passkey(req: Request, response: Response):
         raise HTTPException(status_code=400, detail="Credential not found")
         
     try:
+        origin = f"http://localhost:8000" if req.url.hostname == "localhost" else f"https://{req.url.hostname}"
         verification = verify_authentication_response(
             credential=body,
             expected_challenge=current_challenge,
-            expected_origin=f"https://{req.url.hostname}",
+            expected_origin=origin,
             expected_rp_id=req.url.hostname,
             credential_public_key=row[0],
             credential_current_sign_count=row[1]
