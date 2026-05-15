@@ -646,6 +646,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }).catch(err => console.error("Error fetching initial state:", err));
         }
+        
+        fetch("/api/settings").then(res => {
+            if (res.status === 401) return;
+            return res.json();
+        }).then(data => {
+            if (!data) return;
+            const apiKeyInput = document.getElementById("api-key-input");
+            const secretKeyInput = document.getElementById("secret-key-input");
+            const testnetSwitch = document.getElementById("testnet-switch");
+            const testnetBadge = document.getElementById("testnet-badge");
+            
+            if (apiKeyInput) apiKeyInput.value = data.apiKey || "";
+            if (secretKeyInput) secretKeyInput.value = data.secretKey || "";
+            if (testnetSwitch) testnetSwitch.checked = data.isTestnet;
+            
+            if (testnetBadge) {
+                testnetBadge.style.display = data.isTestnet ? "inline-block" : "none";
+            }
+        }).catch(err => console.error("Error fetching settings:", err));
     }
 
     if (physicsForm) {

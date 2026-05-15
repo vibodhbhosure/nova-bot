@@ -83,6 +83,21 @@ async def shutdown_event():
     # Explicity close CCXT networking resources
     await bot.close()
 
+@app.get("/api/settings", dependencies=[Depends(check_auth)])
+async def get_settings():
+    bot.db_cursor.execute("SELECT key, value FROM sys_settings")
+    rows = bot.db_cursor.fetchall()
+    settings = {r[0]: r[1] for r in rows}
+    return {
+        "apiKey": settings.get("api_key", ""),
+        "secretKey": settings.get("secret_key", ""),
+        "isTestnet": settings.get("testnet", "true").lower() == "true",
+        "takeProfitPct": float(settings.get("tp", bot.risk_engine.take_profit_pct)),
+        "stopLossPct": float(settings.get("sl", bot.risk_engine.stop_loss_pct)),
+        "rsiThreshold": float(settings.get("rsi", bot.risk_engine.rsi_threshold)),
+        "candleTimeframe": settings.get("tf", bot.risk_engine.candle_timeframe)
+    }
+
 @app.post("/api/settings", dependencies=[Depends(check_auth)])
 async def update_settings(req: SettingsRequest):
     await bot.apply_credentials(req.apiKey, req.secretKey, req.isTestnet)
