@@ -603,6 +603,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ apiKey, secretKey, isTestnet })
             });
             
+            const testnetBadge = document.getElementById("testnet-badge");
+            if (testnetBadge) {
+                testnetBadge.style.display = isTestnet ? "inline-block" : "none";
+            }
+            localIsRunning = false;
+            masterSwitch.checked = false;
+            updateMasterSwitchUI(false);
+            
             configBtn.style.backgroundColor = "var(--success)";
             configBtn.innerHTML = '<i data-lucide="check"></i> Reconnected!';
             lucide.createIcons();

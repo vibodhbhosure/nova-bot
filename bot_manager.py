@@ -140,8 +140,9 @@ class CryptoBotManager:
         await self.hydrate_settings()
 
     async def apply_credentials(self, api_key: str, secret_key: str, is_testnet: bool):
-        self.log(f"Switching credentials. Testnet Mode: {is_testnet}")
-        was_running = self.is_running
+        mode_str = "TESTNET" if is_testnet else "PRODUCTION"
+        self.log(f"Environment mode changed to {mode_str}. Master switch forced OFF.")
+        
         if self.is_running:
             await self.turn_off()
             await asyncio.sleep(0.5)
@@ -176,9 +177,6 @@ class CryptoBotManager:
             self.log(f"Markets loaded. Connected to: {self.exchange.urls['api']['public']}")
         except Exception as e:
             self.log(f"Failed to initialize: {e}")
-            
-        if was_running:
-            await self.turn_on()
 
     async def turn_on(self):
         if self.is_running:
