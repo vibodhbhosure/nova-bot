@@ -103,6 +103,15 @@ class CryptoBotManager:
         self.db_cursor.execute("SELECT msg FROM sys_logs ORDER BY id DESC LIMIT 100")
         return [row[0] for row in reversed(self.db_cursor.fetchall())]
         
+    def clear_logs(self, target: str):
+        if target == "hunter":
+            self.db_cursor.execute("DELETE FROM sys_logs WHERE msg LIKE '%[HUNTER]%'")
+        elif target == "system":
+            self.db_cursor.execute("DELETE FROM sys_logs WHERE msg NOT LIKE '%[HUNTER]%'")
+        else:
+            self.db_cursor.execute("DELETE FROM sys_logs")
+        self.db_conn.commit()
+        
     def get_trades(self):
         self.db_cursor.execute("SELECT action, symbol, amount, price, status FROM ledger_trades ORDER BY id DESC LIMIT 50")
         rows = self.db_cursor.fetchall()

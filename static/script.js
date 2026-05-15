@@ -580,6 +580,34 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    const clearSysBtn = document.getElementById("clear-sys-btn");
+    if (clearSysBtn) {
+        clearSysBtn.addEventListener("click", async () => {
+            try {
+                await fetch("/api/logs/clear", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ target: "system" })
+                });
+                sysTerminalWindow.innerHTML = "";
+            } catch (e) { console.error(e); }
+        });
+    }
+
+    const clearHunterBtn = document.getElementById("clear-hunter-btn");
+    if (clearHunterBtn) {
+        clearHunterBtn.addEventListener("click", async () => {
+            try {
+                await fetch("/api/logs/clear", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ target: "hunter" })
+                });
+                hunterTerminalWindow.innerHTML = "";
+            } catch (e) { console.error(e); }
+        });
+    }
+
     const configForm = document.getElementById("config-form");
     const apiKeyInput = document.getElementById("api-key-input");
     const secretKeyInput = document.getElementById("secret-key-input");

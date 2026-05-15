@@ -128,8 +128,9 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
                         <div class="terminal-container" style="margin-top: 0;">
                             <div class="terminal-header"
-                                style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                                <i data-lucide="terminal" style="width: 16px; height: 16px;"></i> System Event Logs
+                                style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="terminal" style="width: 16px; height: 16px;"></i> System Event Logs</div>
+                                <button id="clear-sys-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;" title="Clear System Logs"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
                             </div>
                             <div class="terminal-window" id="sys-terminal-window">
                                 <!-- Logs inject here -->
@@ -138,8 +139,9 @@
 
                         <div class="terminal-container" style="margin-top: 0;">
                             <div class="terminal-header"
-                                style="color: var(--primary); font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                                <i data-lucide="radar" style="width: 16px; height: 16px;"></i> Hunter Analytics Stream
+                                style="color: var(--primary); font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="radar" style="width: 16px; height: 16px;"></i> Hunter Analytics Stream</div>
+                                <button id="clear-hunter-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;" title="Clear Hunter Logs"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
                             </div>
                             <div class="terminal-window" id="hunter-terminal-window"
                                 style="border-top-color: rgba(59, 130, 246, 0.3);">

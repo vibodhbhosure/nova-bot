@@ -159,6 +159,14 @@ async def stop_bot():
     await bot.turn_off()
     return {"status": "stopped"}
 
+class ClearLogsRequest(BaseModel):
+    target: str
+
+@app.post("/api/logs/clear", dependencies=[Depends(check_auth)])
+async def clear_logs(req: ClearLogsRequest):
+    bot.clear_logs(req.target)
+    return {"status": "ok"}
+
 @app.post("/api/blacklist/add", dependencies=[Depends(check_auth)])
 async def add_blacklist(req: BlacklistRequest):
     await bot.blacklist_coin(req.symbol)
