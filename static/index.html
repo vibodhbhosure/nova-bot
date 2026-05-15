@@ -184,31 +184,43 @@
 
             <!-- Audit View -->
             <div id="view-audit" class="view-container" style="display: none;">
-                <section class="card glass-panel" style="width: 100%;">
+                <section class="card glass-panel config-panel" style="max-width: 1100px; margin: 0 auto;">
                     <h2><i data-lucide="shield-check"></i> Audit Log</h2>
-                    <p class="description" style="margin-bottom: 1.5rem;">Full immutable activity trail. Survives log clears. Filterable by category, severity, or search term.</p>
+                    <p class="description" style="margin-bottom: 2rem;">Full immutable activity trail. Survives log clears. Filter by category, severity, or free-text search.</p>
 
                     <!-- Filters Row -->
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center;">
-                        <input type="text" id="audit-search" placeholder="Search action or detail..." style="flex: 1; min-width: 200px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text-main);">
-                        <select id="audit-category" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text-main);">
-                            <option value="">All Categories</option>
-                            <option value="AUTH">AUTH</option>
-                            <option value="TRADE">TRADE</option>
-                            <option value="SIGNAL">SIGNAL</option>
-                            <option value="CONFIG">CONFIG</option>
-                            <option value="SYSTEM">SYSTEM</option>
-                            <option value="LOGS">LOGS</option>
-                            <option value="BLACKLIST">BLACKLIST</option>
-                        </select>
-                        <select id="audit-severity" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text-main);">
-                            <option value="">All Severities</option>
-                            <option value="SUCCESS">SUCCESS</option>
-                            <option value="INFO">INFO</option>
-                            <option value="WARNING">WARNING</option>
-                            <option value="DANGER">DANGER</option>
-                        </select>
-                        <button id="audit-refresh-btn" class="btn btn-primary" style="height: 40px;"><i data-lucide="refresh-cw"></i> Refresh</button>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; align-items: flex-end;">
+                        <div style="flex: 1; min-width: 220px;">
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted);">Search</label>
+                            <input type="text" id="audit-search" placeholder="Search action or detail..." style="width:100%; box-sizing:border-box;">
+                        </div>
+                        <div style="min-width: 160px;">
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted);">Category</label>
+                            <select id="audit-category" style="width:100%; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0.75rem 1rem; color: var(--text-main); font-family: var(--font-body);">
+                                <option value="">All Categories</option>
+                                <option value="AUTH">AUTH</option>
+                                <option value="TRADE">TRADE</option>
+                                <option value="SIGNAL">SIGNAL</option>
+                                <option value="CONFIG">CONFIG</option>
+                                <option value="SYSTEM">SYSTEM</option>
+                                <option value="LOGS">LOGS</option>
+                                <option value="BLACKLIST">BLACKLIST</option>
+                            </select>
+                        </div>
+                        <div style="min-width: 160px;">
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted);">Severity</label>
+                            <select id="audit-severity" style="width:100%; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0.75rem 1rem; color: var(--text-main); font-family: var(--font-body);">
+                                <option value="">All Severities</option>
+                                <option value="SUCCESS">SUCCESS</option>
+                                <option value="INFO">INFO</option>
+                                <option value="WARNING">WARNING</option>
+                                <option value="DANGER">DANGER</option>
+                            </select>
+                        </div>
+                        <div style="padding-bottom: 0;">
+                            <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:transparent;">-</label>
+                            <button id="audit-refresh-btn" class="btn btn-primary"><i data-lucide="refresh-cw"></i> Refresh</button>
+                        </div>
                     </div>
 
                     <!-- Audit Table -->
@@ -226,7 +238,7 @@
                             <tbody id="audit-tbody"></tbody>
                         </table>
                     </div>
-                    <p id="audit-empty" style="color: var(--text-muted); text-align: center; padding: 2rem; display: none;">No audit events found.</p>
+                    <p id="audit-empty" class="description" style="text-align: center; padding: 2rem; display: none;">No audit events found.</p>
                 </section>
             </div>
 
@@ -375,7 +387,7 @@
     </div>
 
     <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
-    <script src="/static/script.js?v=6"></script>
+    <script src="/static/script.js?v=7"></script>
     <script>
         lucide.createIcons();
     </script>
