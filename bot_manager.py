@@ -124,8 +124,11 @@ class CryptoBotManager:
         self.db_conn.commit()
         
     def get_logs(self):
-        self.db_cursor.execute("SELECT msg FROM sys_logs ORDER BY id DESC LIMIT 100")
-        return [row[0] for row in reversed(self.db_cursor.fetchall())]
+        self.db_cursor.execute("SELECT msg FROM sys_logs WHERE msg NOT LIKE '%[HUNTER]%' ORDER BY id DESC LIMIT 50")
+        sys_logs = [row[0] for row in reversed(self.db_cursor.fetchall())]
+        self.db_cursor.execute("SELECT msg FROM sys_logs WHERE msg LIKE '%[HUNTER]%' ORDER BY id DESC LIMIT 50")
+        hun_logs = [row[0] for row in reversed(self.db_cursor.fetchall())]
+        return sys_logs + hun_logs
         
     def clear_logs(self, target: str):
         if target == "hunter":
