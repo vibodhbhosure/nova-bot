@@ -62,7 +62,7 @@ class CryptoBotManager:
         self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS webauthn_credentials (id BLOB PRIMARY KEY, public_key BLOB, sign_count INTEGER)''')
         self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS audit_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT DEFAULT (datetime("now", "localtime")),
+            timestamp TEXT,
             category TEXT,
             action TEXT,
             detail TEXT,
@@ -115,9 +115,11 @@ class CryptoBotManager:
         self.db_conn.commit()
 
     def audit(self, category: str, action: str, detail: str = "", severity: str = "INFO"):
+        from datetime import datetime
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.db_cursor.execute(
-            "INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
-            (category, action, detail, severity)
+            "INSERT INTO audit_log (timestamp, category, action, detail, severity) VALUES (?, ?, ?, ?, ?)",
+            (ts, category, action, detail, severity)
         )
         self.db_conn.commit()
         
