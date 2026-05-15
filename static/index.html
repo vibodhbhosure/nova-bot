@@ -192,11 +192,11 @@
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; align-items: flex-end;">
                         <div style="flex: 1; min-width: 220px;">
                             <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted);">Search</label>
-                            <input type="text" id="audit-search" placeholder="Search action or detail..." style="width:100%; box-sizing:border-box;">
+                            <input type="text" id="audit-search" placeholder="Search action or detail..." style="width:100%; height:46px; box-sizing:border-box;">
                         </div>
                         <div style="min-width: 160px;">
                             <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted);">Category</label>
-                            <select id="audit-category" style="width:100%; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0.75rem 1rem; color: var(--text-main); font-family: var(--font-body);">
+                            <select id="audit-category" style="width:100%; height:46px; box-sizing:border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0 1rem; color: var(--text-main); font-family: var(--font-body);">
                                 <option value="">All Categories</option>
                                 <option value="AUTH">AUTH</option>
                                 <option value="TRADE">TRADE</option>
@@ -209,7 +209,7 @@
                         </div>
                         <div style="min-width: 160px;">
                             <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted);">Severity</label>
-                            <select id="audit-severity" style="width:100%; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0.75rem 1rem; color: var(--text-main); font-family: var(--font-body);">
+                            <select id="audit-severity" style="width:100%; height:46px; box-sizing:border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0 1rem; color: var(--text-main); font-family: var(--font-body);">
                                 <option value="">All Severities</option>
                                 <option value="SUCCESS">SUCCESS</option>
                                 <option value="INFO">INFO</option>
@@ -219,7 +219,7 @@
                         </div>
                         <div style="padding-bottom: 0;">
                             <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:transparent;">-</label>
-                            <button id="audit-refresh-btn" class="btn btn-primary"><i data-lucide="refresh-cw"></i> Refresh</button>
+                            <button id="audit-refresh-btn" class="btn btn-primary" style="height:46px; box-sizing:border-box; margin:0;"><i data-lucide="refresh-cw"></i> Refresh</button>
                         </div>
                     </div>
 
@@ -387,7 +387,7 @@
     </div>
 
     <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
-    <script src="/static/script.js?v=7"></script>
+    <script src="/static/script.js?v=8"></script>
     <script>
         lucide.createIcons();
     </script>
