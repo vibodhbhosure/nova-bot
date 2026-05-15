@@ -622,7 +622,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         try {
             const originalHTML = configBtn.innerHTML;
-            configBtn.innerHTML = '<i data-lucide="loader"></i> Updating...';
+            configBtn.innerHTML = '<i data-lucide="loader"></i> Saving...';
             lucide.createIcons();
             
             await fetch("/api/settings", {
@@ -640,7 +640,7 @@ document.addEventListener("DOMContentLoaded", () => {
             updateMasterSwitchUI(false);
             
             configBtn.style.backgroundColor = "var(--success)";
-            configBtn.innerHTML = '<i data-lucide="check"></i> Reconnected!';
+            configBtn.innerHTML = '<i data-lucide="check"></i> Saved!';
             lucide.createIcons();
             
             setTimeout(() => {
