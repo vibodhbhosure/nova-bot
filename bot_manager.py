@@ -92,6 +92,9 @@ class CryptoBotManager:
             print(f"[EMAIL] Failed to send email: {e}")
 
     async def send_email(self, subject, body):
+        if self.is_testnet and "OTP" not in subject:
+            self.log("[EMAIL] Skipped sending alert email because environment is Testnet.")
+            return
         await asyncio.to_thread(self._send_email_sync, subject, body)
 
     def log(self, msg: str):
