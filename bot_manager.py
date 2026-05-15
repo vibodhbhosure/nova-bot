@@ -158,6 +158,13 @@ class CryptoBotManager:
         if "rsi" in settings: self.risk_engine.rsi_threshold = float(settings["rsi"])
         if "tf" in settings: self.risk_engine.candle_timeframe = settings["tf"]
         
+        if "blacklist" in settings:
+            import json
+            try:
+                self.risk_engine.blacklisted_symbols = json.loads(settings["blacklist"])
+            except Exception:
+                pass
+        
         saved_api = settings.get("api_key", "")
         saved_secret = settings.get("secret_key", "")
         saved_testnet = settings.get("testnet", "true").lower() == "true"
@@ -314,14 +321,18 @@ class CryptoBotManager:
             return False, str(e)
 
     async def blacklist_coin(self, symbol):
+        import json
         if symbol not in self.risk_engine.blacklisted_symbols:
             self.risk_engine.blacklisted_symbols.append(symbol)
+            self.save_setting("blacklist", json.dumps(self.risk_engine.blacklisted_symbols))
             self.log(f"Added {symbol} to Blacklist.")
             self.audit("BLACKLIST", "SYMBOL_BLACKLISTED", f"{symbol} added to blacklist", "WARNING")
             
     async def unblacklist_coin(self, symbol):
+        import json
         if symbol in self.risk_engine.blacklisted_symbols:
             self.risk_engine.blacklisted_symbols.remove(symbol)
+            self.save_setting("blacklist", json.dumps(self.risk_engine.blacklisted_symbols))
             self.log(f"Removed {symbol} from Blacklist.")
             self.audit("BLACKLIST", "SYMBOL_UNBLACKLISTED", f"{symbol} removed from blacklist")
 
