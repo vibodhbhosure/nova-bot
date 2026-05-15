@@ -76,6 +76,7 @@
             <button class="nav-btn" data-target="view-threads"><i data-lucide="cpu"></i> Active Threads</button>
             <button class="nav-btn" data-target="view-orders"><i data-lucide="package-open"></i> Open Orders</button>
             <button class="nav-btn" data-target="view-settings"><i data-lucide="settings"></i> Configurations</button>
+            <button class="nav-btn" data-target="view-audit"><i data-lucide="shield-check"></i> Audit Log</button>
         </nav>
 
         <main id="main-content">
@@ -178,6 +179,54 @@
                     <h2><i data-lucide="cpu"></i> Active Trade Processors</h2>
                     <div class="threads-grid-container" id="threads-container">
                     </div>
+                </section>
+            </div>
+
+            <!-- Audit View -->
+            <div id="view-audit" class="view-container" style="display: none;">
+                <section class="card glass-panel" style="width: 100%;">
+                    <h2><i data-lucide="shield-check"></i> Audit Log</h2>
+                    <p class="description" style="margin-bottom: 1.5rem;">Full immutable activity trail. Survives log clears. Filterable by category, severity, or search term.</p>
+
+                    <!-- Filters Row -->
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center;">
+                        <input type="text" id="audit-search" placeholder="Search action or detail..." style="flex: 1; min-width: 200px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text-main);">
+                        <select id="audit-category" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text-main);">
+                            <option value="">All Categories</option>
+                            <option value="AUTH">AUTH</option>
+                            <option value="TRADE">TRADE</option>
+                            <option value="SIGNAL">SIGNAL</option>
+                            <option value="CONFIG">CONFIG</option>
+                            <option value="SYSTEM">SYSTEM</option>
+                            <option value="LOGS">LOGS</option>
+                            <option value="BLACKLIST">BLACKLIST</option>
+                        </select>
+                        <select id="audit-severity" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text-main);">
+                            <option value="">All Severities</option>
+                            <option value="SUCCESS">SUCCESS</option>
+                            <option value="INFO">INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="DANGER">DANGER</option>
+                        </select>
+                        <button id="audit-refresh-btn" class="btn btn-primary" style="height: 40px;"><i data-lucide="refresh-cw"></i> Refresh</button>
+                    </div>
+
+                    <!-- Audit Table -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Category</th>
+                                    <th>Action</th>
+                                    <th>Detail</th>
+                                    <th>Severity</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-tbody"></tbody>
+                        </table>
+                    </div>
+                    <p id="audit-empty" style="color: var(--text-muted); text-align: center; padding: 2rem; display: none;">No audit events found.</p>
                 </section>
             </div>
 
@@ -326,7 +375,7 @@
     </div>
 
     <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
-    <script src="/static/script.js?v=5"></script>
+    <script src="/static/script.js?v=6"></script>
     <script>
         lucide.createIcons();
     </script>

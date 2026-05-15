@@ -73,6 +73,7 @@ async def verify_device_reset(req: OTPVerifyRequest):
 @app.on_event("startup")
 async def startup_event():
     await bot.initialize()
+    bot.audit("SYSTEM", "APP_STARTED", "NovaBot application started")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -112,6 +113,8 @@ async def toggle_email_alerts(req: EmailAlertsRequest):
     bot.email_alerts_enabled = req.enabled
     bot.save_setting("email_alerts", str(req.enabled).lower())
     bot.log(f"Email alerts {'enabled' if req.enabled else 'disabled'}.")
+    bot.audit("CONFIG", f"EMAIL_ALERTS_{'ENABLED' if req.enabled else 'DISABLED'}",
+              f"Email alert notifications turned {'ON' if req.enabled else 'OFF'}")
     return {"status": "ok", "emailAlerts": req.enabled}
 
 @app.post("/api/physics", dependencies=[Depends(check_auth)])
@@ -127,6 +130,8 @@ async def update_physics(req: PhysicsRequest):
     bot.save_setting("tf", req.candleTimeframe.strip())
     
     bot.log(f"Updated HFT Physics: TP {req.takeProfitPct}% | SL {req.stopLossPct}% | RSI {req.rsiThreshold} | TF {req.candleTimeframe}")
+    bot.audit("CONFIG", "PHYSICS_UPDATED",
+              f"TP: {req.takeProfitPct}% | SL: {req.stopLossPct}% | RSI: {req.rsiThreshold} | TF: {req.candleTimeframe}")
     return {"status": "updated"}
 
 @app.get("/api/orders", dependencies=[Depends(check_auth)])
@@ -138,6 +143,7 @@ async def get_orders():
 async def cancel_order(req: CancelOrderRequest):
     success, res = await bot.cancel_order(req.orderId, req.symbol)
     if success:
+        bot.audit("TRADE", "ORDER_CANCELLED", f"Manually cancelled order {req.orderId} on {req.symbol}")
         return {"status": "success", "result": res}
     return {"status": "error", "message": res}
 
@@ -187,6 +193,25 @@ async def add_blacklist(req: BlacklistRequest):
 async def remove_blacklist(req: BlacklistRequest):
     await bot.unblacklist_coin(req.symbol)
     return {"status": "removed", "blacklisted": bot.risk_engine.blacklisted_symbols}
+
+@app.get("/api/audit", dependencies=[Depends(check_auth)])
+async def get_audit(category: str = None, severity: str = None, search: str = None, limit: int = 200):
+    query = "SELECT id, timestamp, category, action, detail, severity FROM audit_log WHERE 1=1"
+    params = []
+    if category:
+        query += " AND category = ?"
+        params.append(category)
+    if severity:
+        query += " AND severity = ?"
+        params.append(severity)
+    if search:
+        query += " AND (action LIKE ? OR detail LIKE ?)"
+        params.extend([f"%{search}%", f"%{search}%"])
+    query += " ORDER BY id DESC LIMIT ?"
+    params.append(limit)
+    bot.db_cursor.execute(query, params)
+    rows = bot.db_cursor.fetchall()
+    return {"audit": [{"id": r[0], "timestamp": r[1], "category": r[2], "action": r[3], "detail": r[4], "severity": r[5]} for r in rows]}
 
 # WebSockets for real-time dashboard data
 @app.websocket("/ws")

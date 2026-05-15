@@ -66,9 +66,14 @@ async def register_verify_passkey(req: Request):
         cursor.execute("INSERT OR REPLACE INTO webauthn_credentials (id, public_key, sign_count) VALUES (?, ?, ?)",
             (verification.credential_id, verification.credential_public_key, verification.sign_count))
         db.commit()
-        
+        cursor.execute("INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+            ("AUTH", "PASSKEY_REGISTERED", "New passkey device registered", "SUCCESS"))
+        db.commit()
         return {"status": "ok"}
     except Exception as e:
+        cursor.execute("INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+            ("AUTH", "PASSKEY_REGISTER_FAILED", str(e), "DANGER"))
+        db.commit()
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/api/auth/register/verify_password")
@@ -86,6 +91,9 @@ async def register_password(req: Request):
     password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
     
     cursor.execute("INSERT INTO master_auth (password_hash, salt) VALUES (?, ?)", (password_hash, salt))
+    db.commit()
+    cursor.execute("INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+        ("AUTH", "MASTER_PASSWORD_SET", "Master password configured", "SUCCESS"))
     db.commit()
     return {"status": "ok"}
 
@@ -139,8 +147,14 @@ async def login_verify_passkey(req: Request, response: Response):
         
         # Set authenticated cookie
         response.set_cookie(key="novabot_auth", value="authenticated", max_age=86400*30)
+        cursor.execute("INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+            ("AUTH", "PASSKEY_LOGIN_SUCCESS", "Authenticated via passkey", "SUCCESS"))
+        db.commit()
         return {"status": "ok"}
     except Exception as e:
+        cursor.execute("INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+            ("AUTH", "PASSKEY_LOGIN_FAILED", str(e), "DANGER"))
+        db.commit()
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/api/auth/login/verify_password")
@@ -156,7 +170,13 @@ async def login_verify_password(req: Request, response: Response):
     password_hash, salt = row
     if hashlib.sha256((password + salt).encode()).hexdigest() == password_hash:
         response.set_cookie(key="novabot_auth", value="authenticated", max_age=86400*30)
+        cursor.execute("INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+            ("AUTH", "PASSWORD_LOGIN_SUCCESS", "Authenticated via master password", "SUCCESS"))
+        db.commit()
         return {"status": "ok"}
+    cursor.execute("INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+        ("AUTH", "PASSWORD_LOGIN_FAILED", "Invalid master password attempt", "DANGER"))
+    db.commit()
     raise HTTPException(status_code=401, detail="Invalid password")
 
 @router.get("/api/auth/status")
@@ -171,6 +191,9 @@ async def auth_status(req: Request):
 @router.post("/api/auth/logout")
 async def logout(response: Response):
     response.delete_cookie("novabot_auth")
+    cursor.execute("INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+        ("AUTH", "LOGOUT", "User logged out", "INFO"))
+    db.commit()
     return {"status": "ok"}
 
 reset_otp_store = {}
@@ -201,6 +224,9 @@ async def verify_device_reset(req: OTPVerifyRequest):
     
     cursor.execute("DELETE FROM master_auth")
     cursor.execute("DELETE FROM webauthn_credentials")
+    db.commit()
+    cursor.execute("INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+        ("AUTH", "CREDENTIALS_RESET", "All passkeys and master password wiped via OTP", "DANGER"))
     db.commit()
     
     del reset_otp_store['current']

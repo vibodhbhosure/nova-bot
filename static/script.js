@@ -854,15 +854,76 @@ document.addEventListener("DOMContentLoaded", () => {
             if(targetId === "view-orders") {
                 fetchOpenOrders();
                 if(ordersSyncInterval) clearInterval(ordersSyncInterval);
-                ordersSyncInterval = setInterval(fetchOpenOrders, 1000); // 1s automatic sync
+                ordersSyncInterval = setInterval(fetchOpenOrders, 1000);
             } else {
                 if(ordersSyncInterval) clearInterval(ordersSyncInterval);
+            }
+            
+            if(targetId === "view-audit") {
+                fetchAudit();
             }
             
             // Re-render lucide icons immediately on view change for UX
             if(window.lucide) lucide.createIcons();
         });
     });
+
+    // --- Audit ---
+    const auditTbody = document.getElementById("audit-tbody");
+    const auditEmpty = document.getElementById("audit-empty");
+    const auditSearch = document.getElementById("audit-search");
+    const auditCategory = document.getElementById("audit-category");
+    const auditSeverity = document.getElementById("audit-severity");
+    const auditRefreshBtn = document.getElementById("audit-refresh-btn");
+
+    const SEVERITY_STYLE = {
+        SUCCESS: "color: #34d399; border: 1px solid rgba(52,211,153,0.3); background: rgba(52,211,153,0.1);",
+        INFO: "color: #94a3b8; border: 1px solid rgba(148,163,184,0.3); background: rgba(148,163,184,0.05);",
+        WARNING: "color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); background: rgba(251,191,36,0.1);",
+        DANGER: "color: #f87171; border: 1px solid rgba(248,113,113,0.3); background: rgba(248,113,113,0.1);",
+    };
+    const CAT_STYLE = {
+        AUTH: "color:#c084fc;", TRADE:"color:#60a5fa;", SIGNAL:"color:#34d399;",
+        CONFIG:"color:#fbbf24;", SYSTEM:"color:#94a3b8;", LOGS:"color:#f87171;", BLACKLIST:"color:#fb923c;"
+    };
+
+    async function fetchAudit() {
+        const params = new URLSearchParams();
+        if (auditSearch && auditSearch.value.trim()) params.append("search", auditSearch.value.trim());
+        if (auditCategory && auditCategory.value) params.append("category", auditCategory.value);
+        if (auditSeverity && auditSeverity.value) params.append("severity", auditSeverity.value);
+        try {
+            const res = await fetch(`/api/audit?${params.toString()}`);
+            if (res.status === 401) return;
+            const data = await res.json();
+            if (!auditTbody) return;
+            auditTbody.innerHTML = "";
+            if (!data.audit || data.audit.length === 0) {
+                if (auditEmpty) auditEmpty.style.display = "block";
+                return;
+            }
+            if (auditEmpty) auditEmpty.style.display = "none";
+            data.audit.forEach(row => {
+                const sevStyle = SEVERITY_STYLE[row.severity] || SEVERITY_STYLE.INFO;
+                const catStyle = CAT_STYLE[row.category] || "color:var(--text-muted)";
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td style="color:var(--text-muted);font-size:0.8rem;white-space:nowrap;">${row.timestamp}</td>
+                    <td><span style="${catStyle}font-weight:700;font-size:0.78rem;letter-spacing:0.05em;">${row.category}</span></td>
+                    <td style="font-family:'Courier New',monospace;font-size:0.82rem;">${row.action}</td>
+                    <td style="color:var(--text-muted);font-size:0.82rem;">${row.detail || "—"}</td>
+                    <td><span style="${sevStyle}padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;">${row.severity}</span></td>
+                `;
+                auditTbody.appendChild(tr);
+            });
+        } catch(e) { console.error("Audit fetch error", e); }
+    }
+
+    if (auditRefreshBtn) auditRefreshBtn.addEventListener("click", fetchAudit);
+    let auditDebounce;
+    if (auditSearch) auditSearch.addEventListener("input", () => { clearTimeout(auditDebounce); auditDebounce = setTimeout(fetchAudit, 300); });
+    if (auditCategory) auditCategory.addEventListener("change", fetchAudit);
+    if (auditSeverity) auditSeverity.addEventListener("change", fetchAudit);
 
     // --- Init ---
     checkAuthStatus().then(isAuthenticated => {

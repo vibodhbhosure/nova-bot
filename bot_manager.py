@@ -60,6 +60,14 @@ class CryptoBotManager:
         self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS ledger_trades (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT, symbol TEXT, amount REAL, price REAL, status TEXT)''')
         self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS sys_settings (key TEXT PRIMARY KEY, value TEXT)''')
         self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS webauthn_credentials (id BLOB PRIMARY KEY, public_key BLOB, sign_count INTEGER)''')
+        self.db_cursor.execute('''CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT DEFAULT (datetime("now", "localtime")),
+            category TEXT,
+            action TEXT,
+            detail TEXT,
+            severity TEXT DEFAULT "INFO"
+        )''')
         self.db_conn.commit()
 
         # Email Notification Configuration
@@ -105,6 +113,13 @@ class CryptoBotManager:
         print(f"[BOT] {msg}")
         self.db_cursor.execute("INSERT INTO sys_logs (msg) VALUES (?)", (msg,))
         self.db_conn.commit()
+
+    def audit(self, category: str, action: str, detail: str = "", severity: str = "INFO"):
+        self.db_cursor.execute(
+            "INSERT INTO audit_log (category, action, detail, severity) VALUES (?, ?, ?, ?)",
+            (category, action, detail, severity)
+        )
+        self.db_conn.commit()
         
     def get_logs(self):
         self.db_cursor.execute("SELECT msg FROM sys_logs ORDER BY id DESC LIMIT 100")
@@ -113,10 +128,13 @@ class CryptoBotManager:
     def clear_logs(self, target: str):
         if target == "hunter":
             self.db_cursor.execute("DELETE FROM sys_logs WHERE msg LIKE '%[HUNTER]%'")
+            self.audit("LOGS", "HUNTER_LOGS_CLEARED", "Hunter stream logs deleted", "WARNING")
         elif target == "system":
             self.db_cursor.execute("DELETE FROM sys_logs WHERE msg NOT LIKE '%[HUNTER]%'")
+            self.audit("LOGS", "SYSTEM_LOGS_CLEARED", "System event logs deleted", "WARNING")
         else:
             self.db_cursor.execute("DELETE FROM sys_logs")
+            self.audit("LOGS", "ALL_LOGS_CLEARED", "All logs deleted", "WARNING")
         self.db_conn.commit()
         
     def get_trades(self):
@@ -160,6 +178,7 @@ class CryptoBotManager:
     async def apply_credentials(self, api_key: str, secret_key: str, is_testnet: bool):
         mode_str = "TESTNET" if is_testnet else "PRODUCTION"
         self.log(f"Environment mode changed to {mode_str}. Master switch forced OFF.")
+        self.audit("CONFIG", f"ENV_MODE_{mode_str}", f"Switched to {mode_str} mode. Master switch forced OFF.", "WARNING" if is_testnet else "INFO")
         
         if self.is_running:
             await self.turn_off()
@@ -193,8 +212,10 @@ class CryptoBotManager:
             self.log("Connecting to exchange...")
             await self.exchange.load_markets()
             self.log(f"Markets loaded. Connected to: {self.exchange.urls['api']['public']}")
+            self.audit("CONFIG", "API_CREDENTIALS_SAVED", f"Exchange connected. Mode: {mode_str}")
         except Exception as e:
             self.log(f"Failed to initialize: {e}")
+            self.audit("SYSTEM", "EXCHANGE_INIT_FAILED", str(e), "DANGER")
 
     async def turn_on(self):
         if self.is_running:
@@ -205,6 +226,7 @@ class CryptoBotManager:
         
         self.is_running = True
         self.log("Master switch ON. Triggering autonomous trading operations.")
+        self.audit("SYSTEM", "BOT_STARTED", "Master switch turned ON", "SUCCESS")
         # Start the Auto-Screener Hunter Engine
         self.active_tasks.append(asyncio.create_task(self.hunter_routine(str(uuid.uuid4())[:8])))
         
@@ -213,6 +235,7 @@ class CryptoBotManager:
             return
         self.is_running = False
         self.log("Master switch OFF. Emergency cancelling all routines.")
+        self.audit("SYSTEM", "BOT_STOPPED", "Master switch turned OFF", "WARNING")
         for task in self.active_tasks:
             task.cancel()
 
@@ -221,6 +244,7 @@ class CryptoBotManager:
         
         if self.is_testnet:
             self.log(f"[SIMULATION] Proposing {action}: {amount:,.4f} {symbol} @ {price:,.2f}")
+            self.audit("TRADE", f"{action}_SIMULATED", f"{symbol} | Qty: {amount:,.6f} | Price: ${price:,.2f}", "INFO")
         else:
             try:
                 if action == "BUY":
@@ -229,26 +253,32 @@ class CryptoBotManager:
                     required_usdt = amount * price
                     if usdt_balance < required_usdt:
                         self.log(f"[ERROR] INSUFFICIENT FUNDS: Wallet holds ${usdt_balance:,.2f}, Trade requires ${required_usdt:,.2f}")
+                        self.audit("TRADE", "BUY_INSUFFICIENT_FUNDS", f"{symbol} | Need ${required_usdt:,.2f}, Have ${usdt_balance:,.2f}", "DANGER")
                         success = False
                     else:
                         order = await self.exchange.create_limit_buy_order(symbol, amount, price)
                         self.log(f"LIVE BUY EXECUTED: Order ID {order.get('id')}")
+                        self.audit("TRADE", "BUY_LIVE_EXECUTED", f"{symbol} | Qty: {amount:,.6f} | Price: ${price:,.2f} | OrderID: {order.get('id')}", "SUCCESS")
                 elif action == "SELL":
                     base_coin = symbol.split('/')[0]
                     balance = await self.exchange.fetch_balance()
                     coin_balance = balance.get(base_coin, {}).get('free', 0)
                     if coin_balance < amount:
                         self.log(f"[WARNING] INSUFFICIENT {base_coin}: Wallet holds {coin_balance}, Trade expects {amount}. Adjusting output to maximum possible...")
+                        self.audit("TRADE", "SELL_ADJUSTED_AMOUNT", f"{symbol} | Expected {amount:,.6f}, Adjusted to {coin_balance:,.6f}", "WARNING")
                         amount = coin_balance
                     
                     if amount > 0:
                         order = await self.exchange.create_limit_sell_order(symbol, amount, price)
                         self.log(f"LIVE SELL EXECUTED: Order ID {order.get('id')}")
+                        self.audit("TRADE", "SELL_LIVE_EXECUTED", f"{symbol} | Qty: {amount:,.6f} | Price: ${price:,.2f} | OrderID: {order.get('id')}", "SUCCESS")
                     else:
                         self.log(f"[ERROR] ZERO BALANCE: Cannot sell 0 {base_coin}.")
+                        self.audit("TRADE", "SELL_ZERO_BALANCE", f"{symbol} | Zero balance, sell aborted", "DANGER")
                         success = False
             except Exception as e:
                 self.log(f"[ERROR] LIVE {action} REJECTED BY BINANCE API: {e}")
+                self.audit("TRADE", f"{action}_API_REJECTED", f"{symbol} | {str(e)}", "DANGER")
                 success = False
 
         if success:
@@ -285,11 +315,13 @@ class CryptoBotManager:
         if symbol not in self.risk_engine.blacklisted_symbols:
             self.risk_engine.blacklisted_symbols.append(symbol)
             self.log(f"Added {symbol} to Blacklist.")
+            self.audit("BLACKLIST", "SYMBOL_BLACKLISTED", f"{symbol} added to blacklist", "WARNING")
             
     async def unblacklist_coin(self, symbol):
         if symbol in self.risk_engine.blacklisted_symbols:
             self.risk_engine.blacklisted_symbols.remove(symbol)
             self.log(f"Removed {symbol} from Blacklist.")
+            self.audit("BLACKLIST", "SYMBOL_UNBLACKLISTED", f"{symbol} removed from blacklist")
 
     async def hunter_routine(self, thread_id: str):
         self.log(f"Started Hunter Screener {thread_id}")
@@ -338,6 +370,7 @@ class CryptoBotManager:
                             target_acquired = symbol
                             target_price = df['close'].iloc[-1]
                             self.log(f"[HUNTER] MATCH ACQUIRED: {symbol} at {target_price} (RSI {latest_rsi:.2f})")
+                            self.audit("SIGNAL", "RSI_TRIGGERED", f"{symbol} | RSI: {latest_rsi:.2f} < threshold: {self.risk_engine.rsi_threshold} | Price: ${target_price:,.2f}", "SUCCESS")
                             
                             # Send Email Alert
                             asyncio.create_task(self.send_email(
@@ -412,6 +445,7 @@ class CryptoBotManager:
                         if live_price >= target_profit_price:
                             self.threads[thread_id]["status"] = "Target Executed"
                             sell_price = live_price
+                            self.audit("SIGNAL", "TAKE_PROFIT_HIT", f"{symbol} | Buy: ${buy_price:,.2f} | TP: ${target_profit_price:,.2f} | Current: ${live_price:,.2f}", "SUCCESS")
                             
                             # Send Email Alert
                             asyncio.create_task(self.send_email(
@@ -423,6 +457,7 @@ class CryptoBotManager:
                             self.threads[thread_id]["status"] = "Stop Loss Hit"
                             sell_price = live_price
                             self.log(f"[{symbol}] EMERGENCY DUMP! Stop loss hit at ${live_price:,.2f}")
+                            self.audit("SIGNAL", "STOP_LOSS_HIT", f"{symbol} | Buy: ${buy_price:,.2f} | SL: ${stop_loss_price:,.2f} | Current: ${live_price:,.2f}", "DANGER")
                             break
                             
                 if not self.is_running: 
