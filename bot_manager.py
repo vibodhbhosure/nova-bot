@@ -141,9 +141,15 @@ class CryptoBotManager:
 
     async def apply_credentials(self, api_key: str, secret_key: str, is_testnet: bool):
         self.log(f"Switching credentials. Testnet Mode: {is_testnet}")
+        was_running = self.is_running
         if self.is_running:
             await self.turn_off()
-        await self.exchange.close()
+            await asyncio.sleep(0.5)
+            
+        try:
+            await self.exchange.close()
+        except Exception:
+            pass
         
         self.is_testnet = is_testnet
         self.exchange = ccxt.binance({
@@ -157,6 +163,8 @@ class CryptoBotManager:
         })
         if is_testnet:
             self.exchange.set_sandbox_mode(True)
+        else:
+            self.exchange.set_sandbox_mode(False)
             
         self.save_setting("api_key", api_key)
         self.save_setting("secret_key", secret_key)
@@ -168,6 +176,9 @@ class CryptoBotManager:
             self.log(f"Markets loaded. Connected to: {self.exchange.urls['api']['public']}")
         except Exception as e:
             self.log(f"Failed to initialize: {e}")
+            
+        if was_running:
+            await self.turn_on()
 
     async def turn_on(self):
         if self.is_running:
